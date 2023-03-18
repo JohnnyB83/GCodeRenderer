@@ -25,6 +25,49 @@
         const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 2000 );
         const renderer = new THREE.WebGLRenderer(); renderer.setSize( window.innerWidth, window.innerHeight );
         const controls = new OrbitControls( camera, renderer.domElement );
+        let gcodeCommandIndex = 0;
+
+        let lastX = 0;
+        let lastY = 0;
+        let lastZ = 0;
+
+        const testCommands = ["G1 X78.327 Y78.961 F7800","G1 F1800","G1 X79.375 Y77.964 E2.13158","G1 X80.068 Y77.43 E2.21117","G1 X81.282 Y76.682 E2.34075","G1 X83.182 Y75.888 E2.52801","G1 X84.61 Y75.543 E2.66163","G1 X85.479 Y75.428 E2.74136","G1 X86.5 Y75.375 E2.83429","G1 X113.933 Y75.389 E5.32879","G1 X115.957 Y75.656 E5.5144","G1 X117.352 Y76.069 E5.64665","G1 X118.152 Y76.401 E5.72545","G1 X119.431 Y77.094 E5.8577","G1 X120.608 Y77.949 E5.98996","G1 X122.051 Y79.392 E6.17557","G1 X122.578 Y80.08 E6.25437","G1 X123.339 Y81.32 E6.38662","G1 X123.931 Y82.648 E6.51888","G1 X124.459 Y84.62 E6.70449","G1 X124.625 Y86.5 E6.87609","G1 X124.611 Y113.933 E9.37058","G1 X124.459 Y115.38 E9.50284","G1 X123.931 Y117.352 E9.68845","G1 X123.339 Y118.68 E9.82071","G1 X122.579 Y119.92 E9.95296","G1 X122.051 Y120.608 E10.03176","G1 X121.05 Y121.663 E10.16401","G1 X119.92 Y122.578 E10.29626","G1 X118.68 Y123.339 E10.42852","G1 X116.794 Y124.12 E10.61413","G1 X115.38 Y124.459 E10.74638","G1 X113.933 Y124.611 E10.87864","G1 X86.067 Y124.611 E13.41253","G1 X84.62 Y124.459 E13.54479","G1 X83.206 Y124.12 E13.67704","G1 X81.848 Y123.599 E13.80929","G1 X80.08 Y122.578 E13.99491","G1 X78.95 Y121.663 E14.12716","G1 X77.949 Y120.608 E14.25941","G1 X77.422 Y119.92 E14.33821","G1 X76.661 Y118.68 E14.47047","G1 X76.069 Y117.352 E14.60272","G1 X75.656 Y115.957 E14.73497","G1 X75.389 Y113.933 E14.92059","G1 X75.389 Y86.067 E17.45448","G1 X75.548 Y84.584 E17.59008","G1 X76.06 Y82.672 E17.77004","G1 X76.764 Y81.121 E17.92492","G1 X77.561 Y79.88 E18.05907","G1 X78.288 Y79.007 E18.16232","G1 E16.16232 F2400","G92 E0","G1 X102.431 Y83.545 F7800","G1 E2 F2400",";TYPE:Perimeter",";WIDTH:0.626776","G1 F1800","G1 X102.792 Y83.564 E2.02906",";WIDTH:0.663388","G1 X103.154 Y83.582 E2.06004",";WIDTH:0.7","G1 X103.515 Y83.6 E2.09295","G1 X113.544 Y83.606 E3.00489","G1 X114.081 Y83.668 E3.05397","G1 X114.609 Y83.824 E3.10401","G1 X115.119 Y84.105 E3.15704","G1 X115.548 Y84.452 E3.20718","G1 X115.912 Y84.908 E3.26024","G1 X116.176 Y85.391 E3.31035","G1 X116.339 Y85.953 E3.36354","G1 X116.4 Y86.552 E3.41829","G1 X116.4 Y95.4 E4.22277","G1 X116.42 Y95.617 E4.24258",";WIDTH:0.659949","G1 X116.44 Y95.834 E4.26111",";WIDTH:0.619899","G1 X116.46 Y96.05 E4.27838",";WIDTH:0.579848","G1 X116.48 Y96.267 E4.29438",";WIDTH:0.539798","G1 X116.5 Y96.484 E4.3091",";WIDTH:0.499748","G1 X116.521 Y96.541 E4.31286",";WIDTH:0.459194","G1 X116.541 Y96.599 E4.31626",";WIDTH:0.418641","G1 X116.555 Y96.918 E4.33225",";WIDTH:0.440433","G1 X116.53 Y96.998 E4.33669",";WIDTH:0.489843","G1 X116.505 Y97.078 E4.34173",";WIDTH:0.539253","G1 X116.481 Y97.158 E4.34736",";WIDTH:0.588663","G1 X116.456 Y97.237 E4.3536",";WIDTH:0.638073","G1 X116.431 Y97.317 E4.36043","G1 X116.393 Y97.243 E4.36727",";WIDTH:0.588663","G1 X116.355 Y97.168 E4.3735",";WIDTH:0.539253","G1 X116.317 Y97.094 E4.37914",";WIDTH:0.489843","G1 X116.279 Y97.02 E4.38418",";WIDTH:0.440433","G1 X116.241 Y96.946 E4.38861",";WIDTH:0.427265","G1 X116.233 Y96.803 E4.39591",";WIDTH:0.463506","G1 X116.226 Y96.661 E4.40396",";WIDTH:0.499748","G1 X116.218 Y96.519 E4.41277",";WIDTH:0.539798","G1 X116.185 Y96.303 E4.4275",";WIDTH:0.579848","G1 X116.152 Y96.088 E4.44349",";WIDTH:0.619899","G1 X116.119 Y95.873 E4.46076",";WIDTH:0.659949","G1 X116.086 Y95.658 E4.47929",";WIDTH:0.7","G1 X116.022 Y95.335 E4.50923","G1 X115.686 Y94.304 E4.60784","G1 X115.237 Y93.195 E4.71662","G1 X114.71 Y92.12 E4.82544","G1 X114.108 Y91.087 E4.93422","G1 X113.433 Y90.099 E5.04301","G1 X112.616 Y89.077 E5.16197","G1 X111.624 Y88.035 E5.29282","G1 X110.925 Y87.385 E5.37953","G1 X109.993 Y86.635 E5.48832","G1 X109.01 Y85.953 E5.59711","G1 X108.079 Y85.398 E5.69574","G1 X107.012 Y84.856 E5.80453","G1 X105.909 Y84.393 E5.91332","G1 X104.775 Y84.01 E6.02212","G1 X103.617 Y83.709 E6.13092","G1 X103.149 Y83.638 E6.17398",";WIDTH:0.663388","G1 X102.79 Y83.592 E6.20497",";WIDTH:0.626776","G1 X102.49 Y83.553 E6.22921","G1 E4.22921 F2400","G92 E0","G1 X83.569 Y97.317 F7800","G1 E2 F2400",";WIDTH:0.638071","G1 F1800","G1 X83.544 Y97.237 E2.00684",";WIDTH:0.588661","G1 X83.519 Y97.158 E2.01307",";WIDTH:0.539252","G1 X83.495 Y97.078 E2.01871",";WIDTH:0.489842","G1 X83.47 Y96.998 E2.02374",";WIDTH:0.440433","G1 X83.445 Y96.918 E2.02818",";WIDTH:0.418612","G1 X83.459 Y96.599 E2.04415",";WIDTH:0.459163","G1 X83.479 Y96.542 E2.04755",";WIDTH:0.499714","G1 X83.5 Y96.484 E2.05131",";WIDTH:0.539771","G1 X83.52 Y96.267 E2.06604",";WIDTH:0.579828","G1 X83.54 Y96.051 E2.08204",";WIDTH:0.619885","G1 X83.56 Y95.834 E2.09931",";WIDTH:0.659942","G1 X83.58 Y95.617 E2.11786",";WIDTH:0.7","G1 X83.6 Y95.4 E2.13767","G1 X83.607 Y86.466 E2.95004","G1 X83.668 Y85.918 E3.0001","G1 X83.819 Y85.404 E3.04882","G1 X84.111 Y84.873 E3.10398","G1 X84.45 Y84.453 E3.15306","G1 X84.905 Y84.089 E3.206","G1 X85.384 Y83.827 E3.2556","G1 X85.953 Y83.662 E3.30956","G1 X86.552 Y83.6 E3.36432","G1 X96.959 Y83.6 E4.3106","G1 X96.383 Y83.709 E4.36392","G1 X95.225 Y84.01 E4.47272","G1 X94.091 Y84.393 E4.58152","G1 X92.988 Y84.856 E4.69031","G1 X91.921 Y85.398 E4.7991","G1 X90.896 Y86.014 E4.9079","G1 X89.917 Y86.702 E5.01669","G1 X88.99 Y87.459 E5.12548","G1 X88.025 Y88.383 E5.24702","G1 X87.311 Y89.162 E5.34305","G1 X86.567 Y90.099 E5.45184","G1 X85.892 Y91.086 E5.56063","G1 X85.29 Y92.12 E5.66944","G1 X84.763 Y93.195 E5.77822","G1 X84.314 Y94.304 E5.88701","G1 X83.978 Y95.335 E5.98562","G1 X83.914 Y95.658 E6.01556",";WIDTH:0.659942","G1 X83.881 Y95.873 E6.0341",";WIDTH:0.619885","G1 X83.848 Y96.088 E6.05137",";WIDTH:0.579828","G1 X83.815 Y96.304 E6.06737",";WIDTH:0.539771","G1 X83.782 Y96.519 E6.08211",";WIDTH:0.499714","G1 X83.774 Y96.661 E6.0909",";WIDTH:0.463484","G1 X83.766 Y96.803 E6.09895",";WIDTH:0.427254","G1 X83.759 Y96.946 E6.10624",";WIDTH:0.440433","G1 X83.721 Y97.02 E6.11068",";WIDTH:0.489842","G1 X83.683 Y97.094 E6.11571",";WIDTH:0.539252","G1 X83.645 Y97.168 E6.12135",";WIDTH:0.588661","G1 X83.607 Y97.243 E6.12759",";WIDTH:0.638071","G1 X83.596 Y97.264 E6.12951","G1 E4.12951 F2400","G92 E0","G1 X83.6 Y103.035 F7800","G1 E2 F2400",";WIDTH:0.7","G1 F1800","G1 X83.735 Y103.729 E2.06427","G1 X84.011 Y104.777 E2.16286","G1 X84.262 Y105.54 E2.23586","G1 X84.435 Y106.016 E2.28188","G1 X84.858 Y107.014 E2.38047","G1 X85.4 Y108.08 E2.48924","G1 X86.078 Y109.2 E2.60825","G1 X86.705 Y110.084 E2.70684","G1 X87.462 Y111.011 E2.81562","G1 X88.016 Y111.6 E2.8892","G1 X88.378 Y111.973 E2.93646","G1 X88.873 Y112.433 E2.99789","G1 X89.25 Y112.762 E3.04341","G1 X90.101 Y113.434 E3.14199","G1 X91.089 Y114.108 E3.25077","G1 X92.123 Y114.71 E3.35954","G1 X93.3 Y115.282 E3.47856","G1 X94.307 Y115.685 E3.57713","G1 X95.533 Y116.078 E3.69426","G1 X96.233 Y116.256 E3.7599","G1 X96.334 Y116.253 E3.7691"];
+
+
+        const parseGcode = (gcodeString) => {
+          console.warn(gcodeString)
+          const pGcode = gcodeString.split(" ");
+          let isExtruding = false;
+          if (pGcode[0] === 'G0' || pGcode[0] === 'G1') {
+            let currentX = 0;
+            let currentY = 0;
+            let currentZ = 0;
+
+            for (let i = 0; i < pGcode.length; i++) {
+              if (pGcode[i][0] === 'X') {
+                currentX = parseFloat(pGcode[i].substring(1));
+              } else if (pGcode[i][0] === 'Y') {
+                currentY = parseFloat(pGcode[i].substring(1));
+              } else if (pGcode[i][0] === 'Z') {
+                currentZ = parseFloat(pGcode[i].substring(1));
+              } else if (pGcode[i][0] === 'E') {
+                isExtruding = true;
+              }
+            }
+            if (currentX) {
+              lastX = currentX;
+            }
+            if (currentY) {
+              lastY = currentY;
+            }
+            if (currentZ) {
+              lastZ = currentZ;
+            }
+
+          }
+          return { vector: new THREE.Vector3(lastX, lastY, lastZ), arr: [lastX, lastY, lastZ], isExtruding };
+        }
+
 
         document.body.appendChild( renderer.domElement );
 
@@ -75,19 +118,8 @@
         points.push(new THREE.Vector3(0, 0, 210 ));
 
         const geometry = new THREE.BufferGeometry().setFromPoints( points );
-        const line = new THREE.Line( geometry, material );
-
-        // Test Gcode
+        const enclosure = new THREE.Line( geometry, material );
         const p = [];
-        p.push(new THREE.Vector3(106.603, 87.289, 0 ) );
-        p.push(new THREE.Vector3(107.186, 86.148, 0 ) );
-        p.push(new THREE.Vector3(108.101, 85.522, 0 ) );
-        p.push(new THREE.Vector3(109.549, 84.909, 0 ) );
-        p.push(new THREE.Vector3(110.757, 84.667 , 0 ) );
-        p.push(new THREE.Vector3(138.665, 84.628 , 0 ) );
-        
-        const geo = new THREE.BufferGeometry().setFromPoints( p );
-        const testLine = new THREE.Line( geo, material );
 
         // Nozzle
         const cGeo = new THREE.CylinderGeometry( 2, 2, 10, 10 );
@@ -95,20 +127,49 @@
         const cylinder = new THREE.Mesh( cGeo, cMaterial );
         const coneGeometry = new THREE.ConeGeometry( 3, 6, 10 );
         const cone = new THREE.Mesh( coneGeometry, cMaterial );
-
         cylinder.rotation.x = Math.PI / 2;
         cone.rotation.x = - Math.PI / 2;
-        cylinder.position.set(138.665, 84.628 , 10);
-        cone.position.set(138.665, 84.628 , 3);
+        cylinder.position.set(0,0,10);
+        cone.position.set(0,0,3);
+        const Nozzle = new THREE.Group();
+        Nozzle.add(cylinder);
+        Nozzle.add(cone);
+
+        Nozzle.position.set(0, 0);
         
-        scene.add( line );
-        scene.add(testLine)
-        scene.add( cylinder );
-        scene.add( cone );
+        scene.add( enclosure );
+        scene.add( Nozzle );
+
+        function updateGcode() {
+          const interval = setInterval(() => {
+            if (gcodeCommandIndex < testCommands.length) {
+              const command = testCommands[gcodeCommandIndex];
+              const commandResult = parseGcode(command);
+              console.warn(commandResult);
+              if (commandResult.isExtruding) {
+                p.push(commandResult.vector);
+              }
+              Nozzle.position.set(commandResult.arr[0], commandResult.arr[1], commandResult.arr[2]);
+              const geo = new THREE.BufferGeometry().setFromPoints( p );
+              const testLine = new THREE.Line(geo, material);
+              scene.add(testLine);
+              gcodeCommandIndex++;
+            } else {
+              clearInterval(interval);
+              console.warn('DONE');
+            }
+          }, 200)
+        }
+
+        updateGcode();
 
         function animate() {
           requestAnimationFrame( animate );
+          // drawCount = ( drawCount + 1 ) % 10000*3;
+
+          // testLine.geometry.setDrawRange( 0, drawCount );
           controls.update();
+          // testLine.geometry.attributes.position.needsUpdate = true
           renderer.render( scene, camera );
         }
         // if ( WebGL.isWebGLAvailable() ) {
