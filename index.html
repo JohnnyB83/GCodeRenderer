@@ -4845,6 +4845,7 @@
         const p = [];
         const a = [[]];
         let aIndex = 0;
+        let plasticColor = '#088F8F'
 
         // Nozzle
         const cGeo = new THREE.CylinderGeometry( 2, 2, 10, 10 );
@@ -4871,6 +4872,26 @@
             if (event.code === 'ArrowRight') {
               if (gcodeCommandIndex < testCommands.length) {
                 const command = testCommands[gcodeCommandIndex];
+                const ts = command.split('');
+                if (ts[0] === ';') {
+                  const as = command.split(':');
+                  if (as[0] === ';TYPE') {
+                    console.log(as)
+                    switch (as[1]) {
+                      case 'Perimeter':
+                        plasticColor = '#E4D00A';
+                        break;
+                      case 'External perimeter':
+                        plasticColor = '#F98D1C'
+                        break;
+                      case 'Solid infill':
+                        plasticColor = '#8141FF'
+                        break;
+                      default:
+                        plasticColor = '#00ff00'
+                    }
+                  }
+                }
                 const commandResult = parseGcode(command);
                 if (commandResult) {
                   if (!isExtrudingGlobal && commandResult.isExtruding) {
@@ -4896,7 +4917,8 @@
                   // }
                   Nozzle.position.set(commandResult.arr[0], commandResult.arr[1], commandResult.arr[2]);
                   const geo = new THREE.BufferGeometry().setFromPoints( a[aIndex] );
-                  const testLine = new THREE.Line(geo, material);
+                  const plasticMaterial = new THREE.LineBasicMaterial( { color: plasticColor } );
+                  const testLine = new THREE.Line(geo, plasticMaterial);
                   scene.add(testLine);
                 }
             } else {
