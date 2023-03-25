@@ -30,7 +30,9 @@
         let lastX = 0;
         let lastY = 0;
         let lastZ = 0;
+        let isExtrudingGlobal = false;
         const testCommands = [
+          "G1 X106.063 Y87.289 F10800",
         "G1 F1200",
 "G1 X107.186 Y86.148 E.05017",
 "G1 X108.101 Y85.522 E.03476",
@@ -4751,6 +4753,7 @@
           console.warn(gcodeString)
           const pGcode = gcodeString.split(" ");
           let isExtruding = false;
+
           if (pGcode[0] === 'G0' || pGcode[0] === 'G1') {
             let currentX = 0;
             let currentY = 0;
@@ -4764,9 +4767,10 @@
               } else if (pGcode[i][0] === 'Z') {
                 currentZ = parseFloat(pGcode[i].substring(1));
               } else if (pGcode[i][0] === 'E') {
-                // TODO: check that extrusion value is > 0 
-                // Bug where extruding is false on G1 F8640 code which causes gap
-                isExtruding = true;
+                const value = parseFloat(pGcode[i].split('E')[1]);
+                if (value > 0) {
+                  isExtruding = true;
+                }
               }
             }
             if (currentX) {
@@ -4782,7 +4786,8 @@
             return { vector: new THREE.Vector3(lastX, lastY, lastZ), arr: [lastX, lastY, lastZ], isExtruding };
 
           } else {
-            return { vector: new THREE.Vector3(lastX, lastY, lastZ), arr: [lastX, lastY, lastZ], isExtruding: true };
+            // return { vector: new THREE.Vector3(lastX, lastY, lastZ), arr: [lastX, lastY, lastZ], isExtruding: false };
+            return null;
           }
         }
 
@@ -4865,24 +4870,40 @@
           addEventListener("keydown", (event) => {
             if (event.code === 'ArrowRight') {
               if (gcodeCommandIndex < testCommands.length) {
-              const command = testCommands[gcodeCommandIndex];
-              const commandResult = parseGcode(command);
-              console.warn(commandResult);
-              if (commandResult.isExtruding) {
-                a[aIndex].push(commandResult.vector);
-              } else {
-                aIndex++;
-                a[aIndex] = [];
-              }
-              Nozzle.position.set(commandResult.arr[0], commandResult.arr[1], commandResult.arr[2]);
-              const geo = new THREE.BufferGeometry().setFromPoints( a[aIndex] );
-              const testLine = new THREE.Line(geo, material);
-              scene.add(testLine);
-              gcodeCommandIndex++;
+                const command = testCommands[gcodeCommandIndex];
+                const commandResult = parseGcode(command);
+                if (commandResult) {
+                  if (!isExtrudingGlobal && commandResult.isExtruding) {
+                    isExtrudingGlobal = true;
+                    // a[aIndex].push(commandResult.vector);
+                  } else if (isExtrudingGlobal && !commandResult.isExtruding && a[aIndex].length > 1) {
+                    aIndex++;
+                    a[aIndex] = [];
+                    isExtrudingGlobal = false;
+                  } else if (!isExtrudingGlobal && commandResult.arr) {
+                    a[aIndex][0] = commandResult.vector;
+                  } else {
+                    a[aIndex].push(commandResult.vector);
+                  }
+                  // if (!commandResult.isExtruding && commandResult.arr) {
+                  //   a[aIndex][0] = commandResult.vector;
+                  // } else if (commandResult.isExtruding) {
+                  //   console.log('pushing ' + commandResult.arr)
+                  //   a[aIndex].push(commandResult.vector);
+                  // } else {
+                  //   aIndex++;
+                  //   a[aIndex] = [];
+                  // }
+                  Nozzle.position.set(commandResult.arr[0], commandResult.arr[1], commandResult.arr[2]);
+                  const geo = new THREE.BufferGeometry().setFromPoints( a[aIndex] );
+                  const testLine = new THREE.Line(geo, material);
+                  scene.add(testLine);
+                }
             } else {
               // clearInterval(interval);
               console.warn('DONE');
             }
+            gcodeCommandIndex++;
             }
           });
           // const interval = setInterval(() => {
@@ -4905,7 +4926,7 @@
           //     clearInterval(interval);
           //     console.warn('DONE');
           //   }
-          // }, 200)
+          // }, 20)
         }
 
         updateGcode();
