@@ -22,6 +22,12 @@
         import * as THREE from 'https://unpkg.com/three/build/three.module.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+        // let commandData = null;
+
+        // fetch('http://localhost:8000/commands').then(response => response.json().then(d => {
+        //   commandData = d;
+        // }))
+
         const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 2000 );
         const renderer = new THREE.WebGLRenderer(); renderer.setSize( window.innerWidth, window.innerHeight );
         const controls = new OrbitControls( camera, renderer.domElement );
@@ -30,7 +36,16 @@
         let lastX = 0;
         let lastY = 0;
         let lastZ = 0;
+
         let isExtrudingGlobal = false;
+        let currentLinePointCount = 0;
+        let currentLineStartIndex = 0;
+
+        const gcodePoints = [];
+        // index to use for connecting lines
+        const idx = [];
+        const lineArr = [];
+
         const testCommands = [
           "G1 X106.063 Y87.289 F10800",
         "G1 F1200",
@@ -3435,8 +3450,6 @@
 ";BEFORE_LAYER_CHANGE",
 "G92 E0.0",
 ";0.35",
-,
-,
 ";WIPE_START",
 "G1 F8640",
 "G1 X119.854 Y116.989 E-.19861",
@@ -4750,7 +4763,6 @@
 
 
         const parseGcode = (gcodeString) => {
-          console.warn(gcodeString)
           const pGcode = gcodeString.split(" ");
           let isExtruding = false;
 
@@ -4783,13 +4795,34 @@
               lastZ = currentZ;
             }
 
-            return { vector: new THREE.Vector3(lastX, lastY, lastZ), arr: [lastX, lastY, lastZ], isExtruding };
-
-          } else {
-            // return { vector: new THREE.Vector3(lastX, lastY, lastZ), arr: [lastX, lastY, lastZ], isExtruding: false };
-            return null;
+            if (isExtruding && !isExtrudingGlobal) {
+              gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
+              isExtrudingGlobal = true;
+              currentLinePointCount++;
+            } else if (!isExtruding && isExtrudingGlobal) {
+              idx.push(currentLineStartIndex, currentLineStartIndex + currentLinePointCount);
+              isExtrudingGlobal = false;
+              currentLineStartIndex += currentLinePointCount + 1;
+              currentLinePointCount = 0;
+            } else if (isExtruding && isExtrudingGlobal) {
+              gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
+              currentLinePointCount++;
+            }
+            // return { vector: new THREE.Vector3(lastX, lastY, lastZ), arr: [lastX, lastY, lastZ], isExtruding };
           }
         }
+
+        const generateGcodePoints = () => {
+          for (let i = 0; i < testCommands.length; i++) {
+            parseGcode(testCommands[i]);
+          }
+        }
+
+        generateGcodePoints();
+
+        console.log(gcodePoints)
+        const geo = new THREE.BufferGeometry().setFromPoints( gcodePoints );
+        geo.setIndex(idx);
 
 
         document.body.appendChild( renderer.domElement );
@@ -4893,63 +4926,91 @@
                   }
                 }
                 const commandResult = parseGcode(command);
-                if (commandResult) {
-                  if (!isExtrudingGlobal && commandResult.isExtruding) {
-                    isExtrudingGlobal = true;
-                    // a[aIndex].push(commandResult.vector);
-                  } else if (isExtrudingGlobal && !commandResult.isExtruding && a[aIndex].length > 1) {
-                    aIndex++;
-                    a[aIndex] = [];
-                    isExtrudingGlobal = false;
-                  } else if (!isExtrudingGlobal && commandResult.arr) {
-                    a[aIndex][0] = commandResult.vector;
-                  } else {
-                    a[aIndex].push(commandResult.vector);
-                  }
-                  // if (!commandResult.isExtruding && commandResult.arr) {
-                  //   a[aIndex][0] = commandResult.vector;
-                  // } else if (commandResult.isExtruding) {
-                  //   console.log('pushing ' + commandResult.arr)
-                  //   a[aIndex].push(commandResult.vector);
-                  // } else {
-                  //   aIndex++;
-                  //   a[aIndex] = [];
-                  // }
-                  Nozzle.position.set(commandResult.arr[0], commandResult.arr[1], commandResult.arr[2]);
-                  const geo = new THREE.BufferGeometry().setFromPoints( a[aIndex] );
-                  const plasticMaterial = new THREE.LineBasicMaterial( { color: plasticColor } );
-                  const testLine = new THREE.Line(geo, plasticMaterial);
-                  scene.add(testLine);
-                }
+                // if (commandResult) {
+                //   if (!isExtrudingGlobal && commandResult.isExtruding) {
+                //     isExtrudingGlobal = true;
+                //     // a[aIndex].push(commandResult.vector);
+                //   } else if (isExtrudingGlobal && !commandResult.isExtruding && a[aIndex].length > 1) {
+                //     aIndex++;
+                //     a[aIndex] = [];
+                //     isExtrudingGlobal = false;
+                //   } else if (!isExtrudingGlobal && commandResult.arr) {
+                //     a[aIndex][0] = commandResult.vector;
+                //   } else {
+                //     a[aIndex].push(commandResult.vector);
+                //   }
+                //   Nozzle.position.set(commandResult.arr[0], commandResult.arr[1], commandResult.arr[2]);
+                //   const geo = new THREE.BufferGeometry().setFromPoints( a[aIndex] );
+                //   const plasticMaterial = new THREE.LineBasicMaterial( { color: plasticColor } );
+                //   const testLine = new THREE.Line(geo, plasticMaterial);
+                //   scene.add(testLine);
+                // }
+
+                Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
+                const plasticMaterial = new THREE.LineBasicMaterial( { color: plasticColor } );
+                geo.setIndex(idx[gcodeCommandIndex])
+                const testLine = new THREE.Line(geo, plasticMaterial);
+                scene.add(testLine);
+
             } else {
               // clearInterval(interval);
               console.warn('DONE');
             }
             gcodeCommandIndex++;
             }
-          });
+          })};
+
           // const interval = setInterval(() => {
-          //   if (gcodeCommandIndex < testCommands.length) {
-          //     const command = testCommands[gcodeCommandIndex];
-          //     const commandResult = parseGcode(command);
-          //     console.warn(commandResult);
-          //     if (commandResult.isExtruding) {
-          //       a[aIndex].push(commandResult.vector);
-          //     } else {
-          //       aIndex++;
-          //       a[aIndex] = [];
-          //     }
-          //     Nozzle.position.set(commandResult.arr[0], commandResult.arr[1], commandResult.arr[2]);
-          //     const geo = new THREE.BufferGeometry().setFromPoints( a[aIndex] );
-          //     const testLine = new THREE.Line(geo, material);
-          //     scene.add(testLine);
-          //     gcodeCommandIndex++;
+          //   if (commandData) {
+          //     if (gcodeCommandIndex < commandData.length) {
+          //       const command = commandData[gcodeCommandIndex];
+          //       const ts = command.split(' ');
+          //       if (ts[0] === 'M118') {
+          //         const as = command.split(':');
+          //         if (as[0] === 'M118 TYPE') {
+          //           switch (as[1]) {
+          //             case 'Perimeter':
+          //               plasticColor = '#E4D00A';
+          //               break;
+          //             case 'External perimeter':
+          //               plasticColor = '#F98D1C'
+          //               break;
+          //             case 'Solid infill':
+          //               plasticColor = '#8141FF'
+          //               break;
+          //             default:
+          //               plasticColor = '#00ff00'
+          //           }
+          //         }
+          //       }
+          //       const commandResult = parseGcode(command);
+          //       if (commandResult) {
+          //         if (!isExtrudingGlobal && commandResult.isExtruding) {
+          //           isExtrudingGlobal = true;
+          //           // a[aIndex].push(commandResult.vector);
+          //         } else if (isExtrudingGlobal && !commandResult.isExtruding && a[aIndex].length > 1) {
+          //           aIndex++;
+          //           a[aIndex] = [];
+          //           isExtrudingGlobal = false;
+          //         } else if (!isExtrudingGlobal && commandResult.arr) {
+          //           a[aIndex][0] = commandResult.vector;
+          //         } else {
+          //           a[aIndex].push(commandResult.vector);
+          //         }
+          //         Nozzle.position.set(commandResult.arr[0], commandResult.arr[1], commandResult.arr[2]);
+          //         const geo = new THREE.BufferGeometry().setFromPoints( a[aIndex] );
+          //         const plasticMaterial = new THREE.LineBasicMaterial( { color: plasticColor } );
+          //         const testLine = new THREE.Line(geo, plasticMaterial);
+          //         scene.add(testLine);
+          //       }
           //   } else {
-          //     clearInterval(interval);
+          //     // clearInterval(interval);
           //     console.warn('DONE');
           //   }
-          // }, 20)
-        }
+          //   gcodeCommandIndex++;
+          //   }
+          // }, 2)
+
 
         updateGcode();
 
