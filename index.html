@@ -22,11 +22,8 @@
         import * as THREE from 'https://unpkg.com/three/build/three.module.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // let commandData = null;
-
-        // fetch('http://localhost:8000/commands').then(response => response.json().then(d => {
-        //   commandData = d;
-        // }))
+        fetch('http://localhost:8000/commands').then(response => response.json().then(d => {
+        
 
         const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 2000 );
         const renderer = new THREE.WebGLRenderer(); renderer.setSize( window.innerWidth, window.innerHeight );
@@ -4760,8 +4757,6 @@
 "G1 X131.562 Y94.891 E.0119"
         ];
 
-
-
         const parseGcode = (gcodeString) => {
           const pGcode = gcodeString.split(" ");
           let isExtruding = false;
@@ -4795,6 +4790,7 @@
               lastZ = currentZ;
             }
 
+            // console.log(gcodeString + ' ' + isExtruding)
             if (isExtruding && !isExtrudingGlobal) {
               gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
               isExtrudingGlobal = true;
@@ -4813,16 +4809,18 @@
         }
 
         const generateGcodePoints = () => {
-          for (let i = 0; i < testCommands.length; i++) {
-            parseGcode(testCommands[i]);
+          for (let i = 0; i < d.length; i++) {
+            parseGcode(d[i]);
           }
         }
 
-      
+        const scene = new THREE.Scene();
 
         generateGcodePoints();
-        console.log(gcodePoints)
+        // console.log(gcodePoints)
+        // console.log(idx)
         const tp = new Float32Array(gcodePoints.length * 3);
+        const colors = new Float32Array(gcodePoints.length * 3);
 
         for (var i = 0; i < gcodePoints.length ; i++) {
             tp[i * 3] = gcodePoints[i].x;
@@ -4831,8 +4829,29 @@
           }
 
         const geo = new THREE.BufferGeometry();
-        geo.setAttribute('position', new THREE.BufferAttribute(tp, 3));
-        geo.setIndex(idx);
+        geo.setAttribute('position', new THREE.BufferAttribute(tp, 3).setUsage(THREE.DynamicDrawUsage));
+        geo.setAttribute("color", new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage));
+        // geo.setIndex(idx);
+        geo.setDrawRange(0,0);
+
+        const plasticMaterial = new THREE.LineBasicMaterial();
+        const testLine = new THREE.Line(geo, plasticMaterial)
+        scene.add(testLine);
+
+          while(gcodeCommandIndex < d.length) {
+    // parseGcode(d[gcodeCommandIndex]);
+    geo.setDrawRange(0, gcodeCommandIndex);
+    gcodeCommandIndex++;
+  }
+
+// fetch('http://localhost:8000/commands').then(response => response.json().then(d => {
+
+//   while(gcodeCommandIndex < d.length) {
+//     console.log(d)
+//     parseGcode(d.commands[gcodeCommandIndex]);
+//   }
+
+// }))
 
 // itemSize = 3 because there are 3 values (components) per vertex
 // geo.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
@@ -4850,7 +4869,6 @@
         controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
 				controls.dampingFactor = 0.05;
 
-        const scene = new THREE.Scene();
 
         camera.position.set(125, -200, 250);
         controls.target = new THREE.Vector3(125, 105, 105);
@@ -4959,10 +4977,9 @@
                 //   scene.add(testLine);
                 // }
 
+                
+                geo.setDrawRange(0, gcodeCommandIndex);
                 Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
-                const plasticMaterial = new THREE.LineBasicMaterial( { color: plasticColor } );
-                const testLine = new THREE.LineSegments(geo, plasticMaterial);
-                scene.add(testLine);
 
             } else {
               // clearInterval(interval);
@@ -5025,20 +5042,19 @@
 
 
         updateGcode();
+        
 
         function animate() {
           requestAnimationFrame( animate );
-          // drawCount = ( drawCount + 1 ) % 10000*3;
-
-          // testLine.geometry.setDrawRange( 0, drawCount );
           controls.update();
-          // testLine.geometry.attributes.position.needsUpdate = true
+          testLine.geometry.attributes.position.needsUpdate = true;
+          testLine.geometry.attributes.color.needsUpdate = true;
           renderer.render( scene, camera );
         }
         // if ( WebGL.isWebGLAvailable() ) {
           animate();
         // }
-      
+      }))
         </script>
       </body>
     </html>
