@@ -22,7 +22,8 @@
         import * as THREE from 'https://unpkg.com/three/build/three.module.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        fetch('http://localhost:8000/commands').then(response => response.json().then(d => {
+        // fetch('http://localhost:8000/commands').then(response => response.json().then(d => {
+        // }));
         
 
         const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 2000 );
@@ -42,6 +43,7 @@
         // index to use for connecting lines
         const idx = [];
         const lineArr = [];
+        let testZZ = 0;
 
         const testCommands = [
           "G1 X106.063 Y87.289 F10800",
@@ -4794,31 +4796,37 @@
             if (isExtruding && !isExtrudingGlobal) {
               gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
               isExtrudingGlobal = true;
-              currentLinePointCount++;
+              idx.push(testZZ, testZZ+1);
+              testZZ +=1;
+              // currentLinePointCount+=3;
             } else if (!isExtruding && isExtrudingGlobal) {
-              idx.push(currentLineStartIndex, currentLineStartIndex + currentLinePointCount);
+              // idx.push(currentLineStartIndex, currentLineStartIndex + currentLinePointCount);
               isExtrudingGlobal = false;
-              currentLineStartIndex += currentLinePointCount + 1;
-              currentLinePointCount = 0;
+              // currentLineStartIndex += currentLinePointCount + 1;
+              // currentLinePointCount = 0;
+              // testZZ += 1;
             } else if (isExtruding && isExtrudingGlobal) {
               gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
-              currentLinePointCount++;
+              // currentLinePointCount+=3;
+              idx.push(testZZ, testZZ+1);
+              testZZ +=1;
+            } else {
+              gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
+              testZZ += 1;
             }
-            // return { vector: new THREE.Vector3(lastX, lastY, lastZ), arr: [lastX, lastY, lastZ], isExtruding };
           }
         }
 
         const generateGcodePoints = () => {
-          for (let i = 0; i < d.length; i++) {
-            parseGcode(d[i]);
+          for (let i = 0; i < testCommands.length; i++) {
+            parseGcode(testCommands[i]);
           }
         }
 
         const scene = new THREE.Scene();
 
         generateGcodePoints();
-        // console.log(gcodePoints)
-        // console.log(idx)
+
         const tp = new Float32Array(gcodePoints.length * 3);
         const colors = new Float32Array(gcodePoints.length * 3);
 
@@ -4826,32 +4834,35 @@
             tp[i * 3] = gcodePoints[i].x;
             tp[i * 3 + 1] = gcodePoints[i].y;
             tp[i * 3 + 2] = gcodePoints[i].z;
-          }
+        }
+
+        // let zz = 0;
+        // for (var i = 0; i < gcodePoints.length ; i++) {
+        //   idx.push(zz, zz+4)
+        //   zz += 4;
+        // }
+        console.log(idx)
+
+        console.log(tp)
+        // console.log(idx)
+        // const testIdx = [0,2,2,4,4,6,6,8,8,10,10,12,12,14,14,16,16,18]
 
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(tp, 3).setUsage(THREE.DynamicDrawUsage));
         geo.setAttribute("color", new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage));
-        // geo.setIndex(idx);
+        geo.setIndex(idx);
         geo.setDrawRange(0,0);
 
         const plasticMaterial = new THREE.LineBasicMaterial();
-        const testLine = new THREE.Line(geo, plasticMaterial)
+        const testLine = new THREE.LineSegments(geo, plasticMaterial)
         scene.add(testLine);
 
-          while(gcodeCommandIndex < d.length) {
-    // parseGcode(d[gcodeCommandIndex]);
-    geo.setDrawRange(0, gcodeCommandIndex);
-    gcodeCommandIndex++;
-  }
+  //         while(gcodeCommandIndex < d.length) {
+  //   // parseGcode(d[gcodeCommandIndex]);
+  //   geo.setDrawRange(0, gcodeCommandIndex);
+  //   gcodeCommandIndex++;
+  // }
 
-// fetch('http://localhost:8000/commands').then(response => response.json().then(d => {
-
-//   while(gcodeCommandIndex < d.length) {
-//     console.log(d)
-//     parseGcode(d.commands[gcodeCommandIndex]);
-//   }
-
-// }))
 
 // itemSize = 3 because there are 3 values (components) per vertex
 // geo.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
@@ -4936,6 +4947,7 @@
             if (event.code === 'ArrowRight') {
               if (gcodeCommandIndex < testCommands.length) {
                 const command = testCommands[gcodeCommandIndex];
+                console.warn(command)
                 const ts = command.split('');
                 if (ts[0] === ';') {
                   const as = command.split(':');
@@ -4956,7 +4968,7 @@
                     }
                   }
                 }
-                const commandResult = parseGcode(command);
+                // const commandResult = parseGcode(command);
                 // if (commandResult) {
                 //   if (!isExtrudingGlobal && commandResult.isExtruding) {
                 //     isExtrudingGlobal = true;
@@ -4978,7 +4990,7 @@
                 // }
 
                 
-                geo.setDrawRange(0, gcodeCommandIndex);
+                geo.setDrawRange(0, gcodeCommandIndex*2);
                 Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
 
             } else {
@@ -5054,7 +5066,6 @@
         // if ( WebGL.isWebGLAvailable() ) {
           animate();
         // }
-      }))
         </script>
       </body>
     </html>
