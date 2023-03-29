@@ -4818,11 +4818,24 @@
           }
         }
 
-        generateGcodePoints();
+      
 
+        generateGcodePoints();
         console.log(gcodePoints)
-        const geo = new THREE.BufferGeometry().setFromPoints( gcodePoints );
+        const tp = new Float32Array(gcodePoints.length * 3);
+
+        for (var i = 0; i < gcodePoints.length ; i++) {
+            tp[i * 3] = gcodePoints[i].x;
+            tp[i * 3 + 1] = gcodePoints[i].y;
+            tp[i * 3 + 2] = gcodePoints[i].z;
+          }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(tp, 3));
         geo.setIndex(idx);
+
+// itemSize = 3 because there are 3 values (components) per vertex
+// geo.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
 
 
         document.body.appendChild( renderer.domElement );
@@ -4948,8 +4961,7 @@
 
                 Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
                 const plasticMaterial = new THREE.LineBasicMaterial( { color: plasticColor } );
-                geo.setIndex(idx[gcodeCommandIndex])
-                const testLine = new THREE.Line(geo, plasticMaterial);
+                const testLine = new THREE.LineSegments(geo, plasticMaterial);
                 scene.add(testLine);
 
             } else {
