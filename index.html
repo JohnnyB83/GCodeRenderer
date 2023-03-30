@@ -4823,7 +4823,10 @@
               testZZ +=1;
             } else if (!isExtruding && isExtrudingGlobal) {
               isExtrudingGlobal = false;
-              // testZZ += 1;
+              gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
+              gcodeColors.push(plasticColor);
+              idx.push(testZZ, testZZ+1);
+              testZZ += 1;
             } else if (isExtruding && isExtrudingGlobal) {
               gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
               gcodeColors.push(plasticColor);
@@ -4832,6 +4835,8 @@
             } else {
               gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
               gcodeColors.push(plasticColor);
+              // this fixes the nozzle issue for some reason
+              idx.push(testZZ, testZZ);
               testZZ += 1;
             }
           }
@@ -4850,17 +4855,17 @@
         const tp = new Float32Array(gcodePoints.length * 3);
         const colors = new Float32Array(gcodePoints.length * 3);
 
-        for (var i = 0; i < gcodePoints.length ; i++) {
+
+        for (var i = 0; i < gcodePoints.length; i++) {
             tp[i * 3] = gcodePoints[i].x;
             tp[i * 3 + 1] = gcodePoints[i].y;
             tp[i * 3 + 2] = gcodePoints[i].z;
+            // tp[i * 4 + 3] = gcodePoints[i][1];
 
             colors[i * 3] = gcodeColors[i][0];
             colors[i * 3 + 1] = gcodeColors[i][1];
             colors[i * 3 + 2] = gcodeColors[i][2];
         }
-
-        console.log(idx)
 
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(tp, 3).setUsage(THREE.DynamicDrawUsage));
@@ -4933,7 +4938,7 @@
 
         // Nozzle
         const cGeo = new THREE.CylinderGeometry( 2, 2, 10, 10 );
-        const cMaterial = new THREE.MeshBasicMaterial( {color: 0x3E424B, transparent: true, opacity: 0.4} );
+        const cMaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00, transparent: true, opacity: 0.4} );
         const cylinder = new THREE.Mesh( cGeo, cMaterial );
         const coneGeometry = new THREE.ConeGeometry( 3, 6, 10 );
         const cone = new THREE.Mesh( coneGeometry, cMaterial );
@@ -4958,10 +4963,9 @@
                 const command = testCommands[gcodeCommandIndex];
                 console.warn(command)
 
+                Nozzle.position.set(tp[gcodeCommandIndex*3], tp[gcodeCommandIndex*3+1], tp[gcodeCommandIndex*3+2]);
                 geo.setDrawRange(0, gcodeCommandIndex*2);
                 // Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
-                console.log(tp[gcodeCommandIndex*3], tp[gcodeCommandIndex*3+1], tp[gcodeCommandIndex*3+2])
-                Nozzle.position.set(tp[gcodeCommandIndex*3], tp[gcodeCommandIndex*3+1], tp[gcodeCommandIndex*3+2]);
 
             } else {
               // clearInterval(interval);
@@ -4978,7 +4982,6 @@
 
                 geo.setDrawRange(0, gcodeCommandIndex*2);
                 // Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
-                console.log(tp[gcodeCommandIndex*3], tp[gcodeCommandIndex*3+1], tp[gcodeCommandIndex*3+2])
                 Nozzle.position.set(tp[gcodeCommandIndex*3], tp[gcodeCommandIndex*3+1], tp[gcodeCommandIndex*3+2]);
 
             } 
