@@ -44,6 +44,7 @@
         const gcodeColors = [];
         // index to use for connecting lines
         const idx = [];
+        // index to keep track of when lines are connected and when they should be separated
         let testZZ = 0;
 
         const testCommands = [
@@ -4958,13 +4959,29 @@
                 console.warn(command)
 
                 geo.setDrawRange(0, gcodeCommandIndex*2);
-                Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
+                // Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
+                console.log(tp[gcodeCommandIndex*3], tp[gcodeCommandIndex*3+1], tp[gcodeCommandIndex*3+2])
+                Nozzle.position.set(tp[gcodeCommandIndex*3], tp[gcodeCommandIndex*3+1], tp[gcodeCommandIndex*3+2]);
 
             } else {
               // clearInterval(interval);
               console.warn('DONE');
             }
             gcodeCommandIndex++;
+            }
+
+            if (event.code === 'ArrowLeft') {
+              if (gcodeCommandIndex > 0) {
+                gcodeCommandIndex--;
+                const command = testCommands[gcodeCommandIndex];
+                console.warn(command)
+
+                geo.setDrawRange(0, gcodeCommandIndex*2);
+                // Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
+                console.log(tp[gcodeCommandIndex*3], tp[gcodeCommandIndex*3+1], tp[gcodeCommandIndex*3+2])
+                Nozzle.position.set(tp[gcodeCommandIndex*3], tp[gcodeCommandIndex*3+1], tp[gcodeCommandIndex*3+2]);
+
+            } 
             }
           })};
 
