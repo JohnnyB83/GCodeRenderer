@@ -37,7 +37,7 @@
 
         let isExtrudingGlobal = false;
 
-        let plasticColor = [0,255,0];
+        let plasticColor = [0,255,255];
 
         const gcodePoints = [];
         // array that will be used to calculate colors later on during processing
@@ -4772,16 +4772,16 @@
             if (as[0] === ';TYPE') {
               switch (as[1]) {
                 case 'Perimeter':
-                  plasticColor = [228,208,10];
+                  plasticColor = [255,255,0];
                   break;
                 case 'External perimeter':
-                  plasticColor = [249,141,28];
+                  plasticColor = [255,0,0];
                   break;
                 case 'Solid infill':
-                  plasticColor = [129,65.255];
+                  plasticColor = [230,230,250];
                   break;
                 default:
-                  plasticColor = [0,255,0];
+                  plasticColor = [0,255,255];
               }
             }
           }
@@ -4860,7 +4860,6 @@
             tp[i * 3] = gcodePoints[i].x;
             tp[i * 3 + 1] = gcodePoints[i].y;
             tp[i * 3 + 2] = gcodePoints[i].z;
-            // tp[i * 4 + 3] = gcodePoints[i][1];
 
             colors[i * 3] = gcodeColors[i][0];
             colors[i * 3 + 1] = gcodeColors[i][1];
@@ -4887,7 +4886,7 @@
 
 				controls.screenSpacePanning = false;
 
-				controls.minDistance = 10;
+				controls.minDistance = 1;
 				controls.maxDistance = 1000;
 
         controls.minPolarAngle = Math.PI / 2;
@@ -4964,6 +4963,7 @@
                 console.warn(command)
 
                 Nozzle.position.set(tp[gcodeCommandIndex*3], tp[gcodeCommandIndex*3+1], tp[gcodeCommandIndex*3+2]);
+                console.log(colors[gcodeCommandIndex*3], colors[gcodeCommandIndex*3+1], colors[gcodeCommandIndex*3+2]);
                 geo.setDrawRange(0, gcodeCommandIndex*2);
                 // Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
 
