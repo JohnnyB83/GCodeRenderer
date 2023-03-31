@@ -4839,7 +4839,13 @@
               idx.push(testZZ, testZZ);
               testZZ += 1;
             }
-          }
+          } 
+          // else {
+          //     gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
+          //     gcodeColors.push(plasticColor);
+          //     idx.push(testZZ, testZZ+1);
+          //     testZZ += 1;
+          // }
         }
 
         const generateGcodePoints = () => {
@@ -4848,9 +4854,13 @@
           }
         }
 
+
         const scene = new THREE.Scene();
 
         generateGcodePoints();
+
+        console.log(testCommands.length)
+        console.log(gcodePoints.length)
 
         const tp = new Float32Array(gcodePoints.length * 3);
         const colors = new Float32Array(gcodePoints.length * 3);
