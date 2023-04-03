@@ -43,7 +43,7 @@
         // array that will be used to calculate colors later on during processing
         const gcodeColors = [];
         // index to use for connecting lines
-        const idx = [];
+        const idx = [0, 1];
         // index to keep track of when lines are connected and when they should be separated
         let testZZ = 0;
 
@@ -4761,6 +4761,25 @@
 "G1 X131.562 Y94.891 E.0119"
         ];
 
+
+        function doesMovementContainNewCords(gcodeString) {
+          const gArr = gcodeString.split(" ");
+          for (let i = 0; i < gArr.length; i++) {
+              if (gArr[i][0] === 'X') {
+                return true;
+              } else if (gArr[i][0] === 'Y') {
+                return true;
+              } else if (gArr[i][0] === 'Z') {
+                return true;
+              }
+            }
+            return false;
+        }
+
+        let currentInd = 0;
+        const ik = [];
+        let currentSegmentInd = [];
+
         const parseGcode = (gcodeString) => {
           const pGcode = gcodeString.split(" ");
           let isExtruding = false;
@@ -4786,7 +4805,7 @@
             }
           }
 
-          if (pGcode[0] === 'G0' || pGcode[0] === 'G1') {
+          if ((pGcode[0] === 'G0' || pGcode[0] === 'G1') && doesMovementContainNewCords(gcodeString)) {
             let currentX = 0;
             let currentY = 0;
             let currentZ = 0;
@@ -4815,30 +4834,91 @@
               lastZ = currentZ;
             }
 
-            if (isExtruding && !isExtrudingGlobal) {
+            if (isExtruding && isExtrudingGlobal) {
+              // continuation of line
               gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
               gcodeColors.push(plasticColor);
-              isExtrudingGlobal = true;
-              idx.push(testZZ, testZZ+1);
-              testZZ +=1;
+
+              let lastKnownPosIndex = currentInd - 1;
+              console.log(lastKnownPosIndex)
+              console.log(gcodePoints[lastKnownPosIndex])
+              if (!gcodePoints[lastKnownPosIndex]?.x && !gcodePoints[lastKnownPosIndex]?.y) {
+                let lastKnownPos = gcodePoints[lastKnownPosIndex];
+                while (!lastKnownPos.x || !lastKnownPos.y) {
+                  lastKnownPos = gcodePoints[lastKnownPosIndex--];
+                }
+
+                console.warn('found good pos index')
+                console.warn(lastKnownPosIndex);
+                console.warn(gcodeCommandIndex[lastKnownPosIndex])
+              }
+
+              currentSegmentInd.push(currentInd-1, currentInd);
+              // currentInd++;
             } else if (!isExtruding && isExtrudingGlobal) {
+              // line has ended
+              console.warn('line end')
+              gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
+              gcodeColors.push(plasticColor);
+              ik.push(...currentSegmentInd);
+              currentSegmentInd = [];
+              // currentInd++;
+              // currentSegmentInd.push(currentInd);
               isExtrudingGlobal = false;
+            } else if (isExtruding && !isExtrudingGlobal) {
+              // new line
+              console.warn('line start')
               gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
               gcodeColors.push(plasticColor);
-              idx.push(testZZ, testZZ+1);
-              testZZ += 1;
-            } else if (isExtruding && isExtrudingGlobal) {
-              gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
-              gcodeColors.push(plasticColor);
-              idx.push(testZZ, testZZ+1);
-              testZZ +=1;
+              // currentSegmentInd.push(currentInd);
+              // currentInd++;
+              isExtrudingGlobal = true;
             } else {
+              // not extruding
               gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
               gcodeColors.push(plasticColor);
-              // this fixes the nozzle issue for some reason
-              idx.push(testZZ, testZZ);
-              testZZ += 1;
+              // if (doesMovementContainNewCords(gcodeString)) {
+              //   currentInd++;
+              // }
+              // currentInd++;
             }
+
+            currentInd++;
+
+            console.warn(gcodeString)
+            console.log(currentSegmentInd)
+            console.warn(currentInd);
+            console.log(ik)
+            console.log('------------------')
+
+            // if (isExtruding && !isExtrudingGlobal) {
+            //   gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
+            //   gcodeColors.push(plasticColor);
+            //   isExtrudingGlobal = true;
+            //   idx.push(testZZ, testZZ+1);
+            //   // idx.push(idx[idx.length-1], idx[idx.length-1]+1)
+            //   testZZ +=1;
+            // } else if (!isExtruding && isExtrudingGlobal) {
+            //   isExtrudingGlobal = false;
+            //   gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
+            //   gcodeColors.push(plasticColor);
+            //   idx.push(testZZ, testZZ+1);
+            //   // idx.push(idx[idx.length-1], idx[idx.length-1]+1)
+            //   testZZ += 1;
+            // } else if (isExtruding && isExtrudingGlobal) {
+            //   gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
+            //   gcodeColors.push(plasticColor);
+            //   idx.push(testZZ, testZZ+1);
+            //   // idx.push(idx[idx.length-1], idx[idx.length-1]+1)
+            //   testZZ +=1;
+            // } else {
+            //   gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
+            //   gcodeColors.push(plasticColor);
+            //   // this fixes the nozzle issue for some reason
+            //   idx.push(testZZ, testZZ);
+            //   // idx.push(idx[idx.length-2]+1, idx[idx.length-1]+1)
+            //   testZZ += 1;
+            // }
           } 
           // else {
           //     gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
@@ -4849,7 +4929,7 @@
         }
 
         const generateGcodePoints = () => {
-          for (let i = 0; i < testCommands.length; i++) {
+          for (let i = 0; i < 100; i++) {
             parseGcode(testCommands[i]);
           }
         }
@@ -4859,8 +4939,9 @@
 
         generateGcodePoints();
 
-        console.log(testCommands.length)
-        console.log(gcodePoints.length)
+        // console.log(gcodePoints)
+        // console.log(idx)
+        // console.log(ik)
 
         const tp = new Float32Array(gcodePoints.length * 3);
         const colors = new Float32Array(gcodePoints.length * 3);
@@ -4879,7 +4960,7 @@
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(tp, 3).setUsage(THREE.DynamicDrawUsage));
         geo.setAttribute("color", new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage));
-        geo.setIndex(idx);
+        geo.setIndex(ik);
         geo.setDrawRange(0,0);
 
         const plasticMaterial = new THREE.LineBasicMaterial({vertexColors: colors});
