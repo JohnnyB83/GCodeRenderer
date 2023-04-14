@@ -5026,15 +5026,15 @@
                             console.warn(ik[indexGcodePos * 2])
     
                             Nozzle.position.set(
-                                tp[indexGcodePos * 3],
-                                tp[indexGcodePos * 3 + 1],
-                                tp[indexGcodePos * 3 + 2]
+                                tp[gcodeCommandIndex * 3],
+                                tp[gcodeCommandIndex * 3 + 1],
+                                tp[gcodeCommandIndex * 3 + 2]
                             );
                             geo.setDrawRange(0, indexGcodePos * 2);
                             gcodeCommandIndex++;
                             indexGcodePos++;
                         } else {
-                            // let current = gcodeCommandIndex;
+                            let current = gcodeCommandIndex;
                             while (gcodeCommandIndex < ik[indexGcodePos * 2]) {
                                 console.warn('skipping + ' + testCommands[gcodeCommandIndex])
                                 Nozzle.position.set(
@@ -5042,16 +5042,16 @@
                                     tp[gcodeCommandIndex * 3 + 1],
                                     tp[gcodeCommandIndex * 3 + 2]
                                 );
-                                // current++;
-                                gcodeCommandIndex++;
+                                if ((testCommands[current].split(' ')[0] === "G0" || testCommands[current].split(' ')[0] === "G1") && doesMovementContainNewCords(testCommands[current])) {
+                                    gcodeCommandIndex++;
+                                }
+                                current++;
                             }
-                            // gcodeCommandIndex = current;
                             indexGcodePos++;
                             gcodeCommandIndex++;
                             console.log('syncing done')
                             console.warn(gcodeCommandIndex + ' | ' + ik[indexGcodePos * 2])
                         }
-                        // gcodeCommandIndex++;
                     }
 
                     if (event.code === "ArrowLeft") {
