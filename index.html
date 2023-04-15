@@ -27,9 +27,6 @@
             import * as THREE from "https://unpkg.com/three/build/three.module.js";
             import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-            // fetch('http://localhost:8000/commands').then(response => response.json().then(d => {
-            // }));
-
             const camera = new THREE.PerspectiveCamera(
                 75,
                 window.innerWidth / window.innerHeight,
@@ -52,10 +49,6 @@
             const gcodePoints = [];
             // array that will be used to calculate colors later on during processing
             const gcodeColors = [];
-            // index to use for connecting lines
-            const idx = [0, 1];
-            // index to keep track of when lines are connected and when they should be separated
-            let testZZ = 0;
 
             const testCommands = [
                 "G1 X106.063 Y87.289 F10800",
@@ -4785,19 +4778,15 @@
                 return false;
             }
 
-            function shouldUpdateNozzlePosition(gcodeString) {
-                const gArr = gcodeString.split(" ");
-                for (let i = 0; i < gArr.length; i++) {
-                    if (gArr[i][0] === "X" || gArr[i][0] === "Y" || gArr[i][0] === "Z") {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
+            // keeps track of the index value that we should be adding to the global array
             let currentInd = 0;
-            const ik = [];
+            // the index array that hold the indexes from our gcode points that we want to connect and skip
+            // the numbers in this array reference indexes in the gcodePositionArray, and if they are sequential should be connected as a line segment
+            // if there is a gap between the numbers, they are different line segments and the nozzle will continue to move as it should but drawing will begin once the next line segment begins in this array
+            const globalIndexArr = [];
+            // holds the indicies for the current line segment to be added to the global array index once a new line segment starts
             let currentSegmentInd = [];
+            // keeps track of the last index where there was an update to the position so that the next command if extruding can continue from the last know position
             let lastNonExtrusionIndex = 0;
 
             const parseGcode = (gcodeString) => {
@@ -4863,13 +4852,12 @@
                         gcodeColors.push(plasticColor);
 
                         currentSegmentInd.push(currentInd - 1, currentInd);
-                        // currentInd++;
                     } else if (!isExtruding && isExtrudingGlobal) {
                         // line has ended
                         gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
                         gcodeColors.push(plasticColor);
 
-                        ik.push(...currentSegmentInd);
+                        globalIndexArr.push(...currentSegmentInd);
                         currentSegmentInd = [];
                         isExtrudingGlobal = false;
                     } else if (isExtruding && !isExtrudingGlobal) {
@@ -4899,13 +4887,13 @@
 
             generateGcodePoints();
 
-            const tp = new Float32Array(gcodePoints.length * 3);
+            const gcodePositionArray = new Float32Array(gcodePoints.length * 3);
             const colors = new Float32Array(gcodePoints.length * 3);
 
             for (var i = 0; i < gcodePoints.length; i++) {
-                tp[i * 3] = gcodePoints[i].x;
-                tp[i * 3 + 1] = gcodePoints[i].y;
-                tp[i * 3 + 2] = gcodePoints[i].z;
+                gcodePositionArray[i * 3] = gcodePoints[i].x;
+                gcodePositionArray[i * 3 + 1] = gcodePoints[i].y;
+                gcodePositionArray[i * 3 + 2] = gcodePoints[i].z;
 
                 colors[i * 3] = gcodeColors[i][0];
                 colors[i * 3 + 1] = gcodeColors[i][1];
@@ -4915,26 +4903,18 @@
             const geo = new THREE.BufferGeometry();
             geo.setAttribute(
                 "position",
-                new THREE.BufferAttribute(tp, 3).setUsage(THREE.DynamicDrawUsage)
+                new THREE.BufferAttribute(gcodePositionArray, 3).setUsage(THREE.DynamicDrawUsage)
             );
             geo.setAttribute(
                 "color",
                 new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage)
             );
-            geo.setIndex(ik);
-            console.warn(ik)
-            // console.warn(gcodePoints)
+            geo.setIndex(globalIndexArr);
             geo.setDrawRange(0, 0);
 
             const plasticMaterial = new THREE.LineBasicMaterial({ vertexColors: colors });
             const testLine = new THREE.LineSegments(geo, plasticMaterial);
             scene.add(testLine);
-
-            //         while(gcodeCommandIndex < d.length) {
-            //   // parseGcode(d[gcodeCommandIndex]);
-            //   geo.setDrawRange(0, gcodeCommandIndex*2);
-            //   gcodeCommandIndex++;
-            // }
 
             document.body.appendChild(renderer.domElement);
 
@@ -4984,9 +4964,6 @@
 
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             const enclosure = new THREE.Line(geometry, material);
-            const p = [];
-            const a = [[]];
-            let aIndex = 0;
 
             // Nozzle
             const cGeo = new THREE.CylinderGeometry(2, 2, 10, 10);
@@ -4998,10 +4975,12 @@
             const cylinder = new THREE.Mesh(cGeo, cMaterial);
             const coneGeometry = new THREE.ConeGeometry(3, 6, 10);
             const cone = new THREE.Mesh(coneGeometry, cMaterial);
+
             cylinder.rotation.x = Math.PI / 2;
             cone.rotation.x = -Math.PI / 2;
             cylinder.position.set(0, 0, 10);
             cone.position.set(0, 0, 3);
+
             const Nozzle = new THREE.Group();
             Nozzle.add(cylinder);
             Nozzle.add(cone);
@@ -5011,36 +4990,37 @@
             scene.add(enclosure);
             scene.add(Nozzle);
 
+            // Tracks the position that we should be showing in the index array
+            // gcodeCommandIndex and globalIndexArr[indexGcodePos * 2] should be equal or else we need to skip commands to sync the nozzle and the line
             let indexGcodePos = 0;
 
             function updateGcode() {
                 addEventListener("keydown", (event) => {
                     if (event.code === "ArrowRight") {
-                        // const cc = testCommands[gcodeCommandIndex].split(" ");
-                        // (cc[0] === "G0" || cc[0] === "G1") && doesMovementContainNewCords(testCommands[gcodeCommandIndex])
-                        console.log(gcodeCommandIndex + ' | ' + ik[indexGcodePos * 2])
-                        if (gcodeCommandIndex === ik[indexGcodePos * 2]) {
+                        console.log(gcodeCommandIndex + ' | ' + globalIndexArr[indexGcodePos * 2])
+                        if (gcodeCommandIndex === globalIndexArr[indexGcodePos * 2]) {
                             const command = testCommands[gcodeCommandIndex];
                             console.warn(command);
                             console.log(gcodeCommandIndex)
-                            console.warn(ik[indexGcodePos * 2])
+                            console.warn(globalIndexArr[indexGcodePos * 2])
+                            console.warn(gcodeColors[gcodeCommandIndex])
     
                             Nozzle.position.set(
-                                tp[gcodeCommandIndex * 3],
-                                tp[gcodeCommandIndex * 3 + 1],
-                                tp[gcodeCommandIndex * 3 + 2]
+                                gcodePositionArray[gcodeCommandIndex * 3],
+                                gcodePositionArray[gcodeCommandIndex * 3 + 1],
+                                gcodePositionArray[gcodeCommandIndex * 3 + 2]
                             );
                             geo.setDrawRange(0, indexGcodePos * 2);
                             gcodeCommandIndex++;
                             indexGcodePos++;
                         } else {
                             let current = gcodeCommandIndex;
-                            while (gcodeCommandIndex < ik[indexGcodePos * 2]) {
+                            while (gcodeCommandIndex < globalIndexArr[indexGcodePos * 2]) {
                                 console.warn('skipping + ' + testCommands[gcodeCommandIndex])
                                 Nozzle.position.set(
-                                    tp[gcodeCommandIndex * 3],
-                                    tp[gcodeCommandIndex * 3 + 1],
-                                    tp[gcodeCommandIndex * 3 + 2]
+                                    gcodePositionArray[gcodeCommandIndex * 3],
+                                    gcodePositionArray[gcodeCommandIndex * 3 + 1],
+                                    gcodePositionArray[gcodeCommandIndex * 3 + 2]
                                 );
                                 if ((testCommands[current].split(' ')[0] === "G0" || testCommands[current].split(' ')[0] === "G1") && doesMovementContainNewCords(testCommands[current])) {
                                     gcodeCommandIndex++;
@@ -5050,7 +5030,7 @@
                             indexGcodePos++;
                             gcodeCommandIndex++;
                             console.log('syncing done')
-                            console.warn(gcodeCommandIndex + ' | ' + ik[indexGcodePos * 2])
+                            console.warn(gcodeCommandIndex + ' | ' + globalIndexArr[indexGcodePos * 2])
                         }
                     }
 
@@ -5063,9 +5043,9 @@
                             geo.setDrawRange(0, gcodeCommandIndex * 2);
                             // Nozzle.position.set(gcodePoints[gcodeCommandIndex].x, gcodePoints[gcodeCommandIndex].y, gcodePoints[gcodeCommandIndex].z);
                             Nozzle.position.set(
-                                tp[gcodeCommandIndex * 3],
-                                tp[gcodeCommandIndex * 3 + 1],
-                                tp[gcodeCommandIndex * 3 + 2]
+                                gcodePositionArray[gcodeCommandIndex * 3],
+                                gcodePositionArray[gcodeCommandIndex * 3 + 1],
+                                gcodePositionArray[gcodeCommandIndex * 3 + 2]
                             );
                         }
                     }
