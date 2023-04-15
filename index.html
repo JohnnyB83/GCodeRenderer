@@ -44,14 +44,14 @@
 
             let isExtrudingGlobal = false;
 
-            let plasticColor = [0, 255, 255];
-
             const gcodePoints = [];
             // array that will be used to calculate colors later on during processing
             const gcodeColors = [];
 
             const testCommands = [
                 "G1 X106.063 Y87.289 F10800",
+                ";TYPE:Skirt/Brim",
+                ";WIDTH:0.42",
                 "G1 F1200",
                 "G1 X107.186 Y86.148 E.05017",
                 "G1 X108.101 Y85.522 E.03476",
@@ -4789,27 +4789,44 @@
             // keeps track of the last index where there was an update to the position so that the next command if extruding can continue from the last know position
             let lastNonExtrusionIndex = 0;
 
+            let plasticColor = [];
+
             const parseGcode = (gcodeString) => {
                 const pGcode = gcodeString.split(" ");
                 let isExtruding = false;
 
-                const ts = gcodeString.split("");
+                const commandArr = gcodeString.split("");
 
-                if (ts[0] === ";") {
-                    const as = gcodeString.split(":");
-                    if (as[0] === ";TYPE") {
-                        switch (as[1]) {
+                if (commandArr[0] === ";") {
+                    const specialInstruction = gcodeString.split(":");
+                    if (specialInstruction[0] === ";TYPE") {
+                        switch (specialInstruction[1]) {
                             case "Perimeter":
-                                plasticColor = [255, 255, 0];
+                                plasticColor = [1.0, 1.0, 0];
                                 break;
                             case "External perimeter":
-                                plasticColor = [255, 0, 0];
+                                plasticColor = [0.96, 0.505, 0.019];
+                                break;
+                            case "Internal infill":
+                                plasticColor = [0.509, 0.188, 0.016];
                                 break;
                             case "Solid infill":
-                                plasticColor = [230, 230, 250];
+                                plasticColor = [0.862, 0.058, 1.0];
+                                break;
+                            case "Top solid infill":
+                                plasticColor = [0.968, 0.176, 0.255];
+                                break;
+                            case "Bridge infill":
+                                plasticColor = [0.094, 1.0, 0.921];
+                                break;
+                            case "Skirt/Brim":
+                                plasticColor = [0.015,0.721,0.392];
+                                break;
+                            case "Custom":
+                                plasticColor = [0.25, 0.960, 0.627];
                                 break;
                             default:
-                                plasticColor = [0, 255, 255];
+                                plasticColor = [1.0, 1.0, 1.0];
                         }
                     }
                 }
@@ -4907,12 +4924,12 @@
             );
             geo.setAttribute(
                 "color",
-                new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage)
+                new THREE.BufferAttribute(colors, 3)
             );
             geo.setIndex(globalIndexArr);
             geo.setDrawRange(0, 0);
 
-            const plasticMaterial = new THREE.LineBasicMaterial({ vertexColors: colors });
+            const plasticMaterial = new THREE.LineBasicMaterial({ vertexColors: true });
             const testLine = new THREE.LineSegments(geo, plasticMaterial);
             scene.add(testLine);
 
