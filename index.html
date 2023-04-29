@@ -4877,6 +4877,7 @@
                         globalIndexArr.push(...currentSegmentInd);
                         currentSegmentInd = [];
                         isExtrudingGlobal = false;
+                        lastNonExtrusionIndex = currentInd;
                     } else if (isExtruding && !isExtrudingGlobal) {
                         // new line
                         gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
