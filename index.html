@@ -4877,6 +4877,9 @@
                         globalIndexArr.push(...currentSegmentInd);
                         currentSegmentInd = [];
                         isExtrudingGlobal = false;
+                        for (let i = lastNonExtrusionIndex; i < currentInd; i++) {
+                            gcodeColors[i] = plasticColor;
+                        }
                         lastNonExtrusionIndex = currentInd;
                     } else if (isExtruding && !isExtrudingGlobal) {
                         // new line
@@ -4888,6 +4891,9 @@
                         // not extruding
                         gcodePoints.push(new THREE.Vector3(lastX, lastY, lastZ));
                         gcodeColors.push(plasticColor);
+                        for (let i = lastNonExtrusionIndex; i < currentInd; i++) {
+                            gcodeColors[i] = plasticColor;
+                        }
                         lastNonExtrusionIndex = currentInd;
                     }
 
